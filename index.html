@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.10/lib/p5.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.10/lib/addons/p5.sound.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text Keystroke Analysis Survey</title>
+</head>
+<body>
+  <main></main>
+  
+  <!-- Load main survey script -->
+  <script src="text-keystroke-analysis-survey-from-json.js"></script>
+  <script src="survey_data_from_json.js"></script>
+  <script>
+    // Helper function for email copy functionality (if needed)
+    function copyEmailSafely(event) {
+      event.preventDefault();
+      const email = 'fpd1social@gmail.com';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email).then(() => {
+          console.log('Email copied to clipboard');
+        }).catch(err => {
+          console.error('Failed to copy email:', err);
+        });
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = email;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          console.log('Email copied to clipboard');
+        } catch (err) {
+          console.error('Failed to copy email:', err);
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+    
+    // Override the problematic onclick handler after the main script loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Wait a bit for the email element to be created
+      setTimeout(() => {
+        const emailElement = document.getElementById('email-copy-button');
+        if (emailElement) {
+          emailElement.onclick = copyEmailSafely;
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
