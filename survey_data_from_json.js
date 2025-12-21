@@ -1321,14 +1321,14 @@ const SURVEY_DATA_FROM_JSON = {
       "text_content": "This moment is not just about basketball it is about transformation. They stood up not because they had to but because they believed in something bigger. That kind of leadership awakens the power in others."
     },
     "text2": {
-      "filename": "1770934ad1b91344c763822588694de5_1_1_2_1770934ad1b91344c763822588694de5_features.json",
-      "user_id": "1770934ad1b91344c763822588694de5",
+      "filename": "195bfcb901041c1626085c1e338fe16a_1_1_1_195bfcb901041c1626085c1e338fe16a_features.json",
+      "user_id": "195bfcb901041c1626085c1e338fe16a",
       "features": {
-        "WPM": 44.501074491755894,
-        "WordCount": 39,
-        "Duration_ms": 52583.0,
-        "Average_KHT": 112.60066382533874,
-        "Average_KIT": 119.3256880733945,
+        "WPM": 8.754097403923781,
+        "WordCount": 30,
+        "Duration_ms": 205618.0,
+        "Average_KHT": 111.17132801061373,
+        "Average_KIT": 1040.072625698324,
         "PauseHistogram": [
           {
             "BinRange": "0-250 ms",
@@ -1336,19 +1336,19 @@ const SURVEY_DATA_FROM_JSON = {
           },
           {
             "BinRange": "250-500 ms",
-            "Proportion": 0.64
+            "Proportion": 0.3877551020408163
           },
           {
             "BinRange": "500-1000 ms",
-            "Proportion": 0.36
+            "Proportion": 0.3673469387755102
           },
           {
             "BinRange": "1000-2000 ms",
-            "Proportion": 0.0
+            "Proportion": 0.20408163265306123
           },
           {
             "BinRange": "2000-3000 ms",
-            "Proportion": 0.0
+            "Proportion": 0.02040816326530612
           },
           {
             "BinRange": "3000-5000 ms",
@@ -1356,75 +1356,47 @@ const SURVEY_DATA_FROM_JSON = {
           },
           {
             "BinRange": "5000-10000 ms",
-            "Proportion": 0.0
+            "Proportion": 0.02040816326530612
           }
         ],
         "BurstHistogram": [
           {
             "BurstLength_Keys": 1,
-            "Proportion": 0.2692307692307692
+            "Proportion": 0.2549019607843137
           },
           {
             "BurstLength_Keys": 2,
-            "Proportion": 0.07692307692307693
+            "Proportion": 0.0784313725490196
           },
           {
             "BurstLength_Keys": 3,
-            "Proportion": 0.11538461538461539
+            "Proportion": 0.13725490196078433
+          },
+          {
+            "BurstLength_Keys": 4,
+            "Proportion": 0.27450980392156865
           },
           {
             "BurstLength_Keys": 5,
-            "Proportion": 0.038461538461538464
+            "Proportion": 0.0784313725490196
           },
           {
             "BurstLength_Keys": 6,
-            "Proportion": 0.038461538461538464
+            "Proportion": 0.11764705882352941
+          },
+          {
+            "BurstLength_Keys": 8,
+            "Proportion": 0.0196078431372549
           },
           {
             "BurstLength_Keys": 9,
-            "Proportion": 0.07692307692307693
-          },
-          {
-            "BurstLength_Keys": 10,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 11,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 12,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 13,
-            "Proportion": 0.07692307692307693
-          },
-          {
-            "BurstLength_Keys": 14,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 15,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 16,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 23,
-            "Proportion": 0.038461538461538464
-          },
-          {
-            "BurstLength_Keys": 43,
-            "Proportion": 0.038461538461538464
+            "Proportion": 0.0392156862745098
           }
         ]
       },
-      "text_content": "This scene is not just about a team taking a stand it is about realizing your worth. When you stop hiding from your potential everything changes. That speech gave voice to a truth many are too scared to say."
+      "text_content": "it was inspiring and motivating me to watch the video and it was all about the relationship between the coach and the student and how the student respect the coach"
     },
-    "actualType": "same_user",
+    "actualType": "different_users",
     "difficulty": "MEDIUM"
   },
   {
@@ -1506,14 +1478,14 @@ const SURVEY_DATA_FROM_JSON = {
       "text_content": "it was inspiring and motivating me to watch the video and it was all about the relationship between the coach and the student and how the student respect the coach"
     },
     "text2": {
-      "filename": "195bfcb901041c1626085c1e338fe16a_1_1_2_195bfcb901041c1626085c1e338fe16a_features.json",
-      "user_id": "195bfcb901041c1626085c1e338fe16a",
+      "filename": "1a2225bfe73f2095e699b02b6c9e2453_1_1_1_1a2225bfe73f2095e699b02b6c9e2453_features.json",
+      "user_id": "1a2225bfe73f2095e699b02b6c9e2453",
       "features": {
-        "WPM": 8.512079372851959,
-        "WordCount": 31,
-        "Duration_ms": 218513.0,
-        "Average_KHT": 111.92134007793852,
-        "Average_KIT": 952.9707317073171,
+        "WPM": 7.774898185857091,
+        "WordCount": 49,
+        "Duration_ms": 378140.0,
+        "Average_KHT": 88.45071045140253,
+        "Average_KIT": 837.7815533980582,
         "PauseHistogram": [
           {
             "BinRange": "0-250 ms",
@@ -1521,67 +1493,67 @@ const SURVEY_DATA_FROM_JSON = {
           },
           {
             "BinRange": "250-500 ms",
-            "Proportion": 0.4482758620689655
+            "Proportion": 0.33714285714285713
           },
           {
             "BinRange": "500-1000 ms",
-            "Proportion": 0.43103448275862066
+            "Proportion": 0.22857142857142856
           },
           {
             "BinRange": "1000-2000 ms",
-            "Proportion": 0.05172413793103448
+            "Proportion": 0.32571428571428573
           },
           {
             "BinRange": "2000-3000 ms",
-            "Proportion": 0.017241379310344827
+            "Proportion": 0.06285714285714286
           },
           {
             "BinRange": "3000-5000 ms",
-            "Proportion": 0.017241379310344827
+            "Proportion": 0.02857142857142857
           },
           {
             "BinRange": "5000-10000 ms",
-            "Proportion": 0.034482758620689655
+            "Proportion": 0.017142857142857144
           }
         ],
         "BurstHistogram": [
           {
             "BurstLength_Keys": 1,
-            "Proportion": 0.21666666666666667
+            "Proportion": 0.4065934065934066
           },
           {
             "BurstLength_Keys": 2,
-            "Proportion": 0.15
+            "Proportion": 0.25274725274725274
           },
           {
             "BurstLength_Keys": 3,
-            "Proportion": 0.23333333333333334
+            "Proportion": 0.1813186813186813
           },
           {
             "BurstLength_Keys": 4,
-            "Proportion": 0.11666666666666667
+            "Proportion": 0.07142857142857142
           },
           {
             "BurstLength_Keys": 5,
-            "Proportion": 0.11666666666666667
+            "Proportion": 0.038461538461538464
           },
           {
             "BurstLength_Keys": 6,
-            "Proportion": 0.03333333333333333
+            "Proportion": 0.03296703296703297
           },
           {
             "BurstLength_Keys": 7,
-            "Proportion": 0.1
+            "Proportion": 0.005494505494505495
           },
           {
-            "BurstLength_Keys": 8,
-            "Proportion": 0.03333333333333333
+            "BurstLength_Keys": 9,
+            "Proportion": 0.01098901098901099
           }
         ]
       },
-      "text_content": "it was inspiring how to overcome the fear which is we all facing students are get motivated from his coach and make him to be proud and over come the darkness"
+      "text_content": "coach carter takes charge of the struggling basket ball team . He emphasizes discipline, respect , academics, accountability , teamwork just as much as winning the games and helped the players to grow as human beings. And most importantly he made them realize that studies is also important ."
     },
-    "actualType": "same_user",
+    "actualType": "different_users",
     "difficulty": "MEDIUM"
   }
 ],

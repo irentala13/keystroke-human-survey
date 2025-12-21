@@ -88,7 +88,7 @@ def load_all_features():
 def generate_text_pairs(all_data):
     """Generate text pairs from loaded data
     
-    Creates a balanced mix of same-user and different-user pairs.
+    Strategy: Create balanced distribution of same-user and different-user pairs
     Target: ~7 same-user pairs + ~2 different-user pairs (total 9)
     """
     pairs = []
@@ -101,21 +101,74 @@ def generate_text_pairs(all_data):
             user_groups[user_id] = []
         user_groups[user_id].append(data)
     
-    # Target counts (adjustable)
-    TARGET_SAME_USER = 5
-    TARGET_DIFFERENT_USER = 4
-    TARGET_TOTAL = TARGET_SAME_USER + TARGET_DIFFERENT_USER
+    # Filter users with at least 2 files
+    eligible_users = {uid: files for uid, files in user_groups.items() if len(files) >= 2}
+    user_ids = list(eligible_users.keys())
+    
+    if len(user_ids) == 0:
+        print("⚠️  No users with 2+ files found")
+        return pairs
+    
+    # Target: 7 same-user pairs + 2 different-user pairs
+    TARGET_SAME_USER = 7
+    TARGET_DIFFERENT_USER = 2
+    TARGET_TOTAL = 9
+    
+    pair_id = 1
     
     # Create same-user pairs (target: 7)
-    pair_id = 1
-    for user_id, user_files in user_groups.items():
+    print(f"📝 Creating SAME-USER pairs (target: {TARGET_SAME_USER})...")
+    for user_id in user_ids:
         if len(pairs) >= TARGET_SAME_USER:
             break
-            
-        if len(user_files) >= 2:
-            # Pair first two files from same user
-            file1 = user_files[0]
-            file2 = user_files[1]
+        
+        user_files = eligible_users[user_id]
+        # Pair first two files from same user
+        file1 = user_files[0]
+        file2 = user_files[1]
+        
+        pairs.append({
+            'id': f'pair_{pair_id:03d}',
+            'text1': {
+                'filename': file1['filename'],
+                'user_id': file1['user_id'],
+                'features': file1['features'],
+                'text_content': file1.get('text_content', '')
+            },
+            'text2': {
+                'filename': file2['filename'],
+                'user_id': file2['user_id'],
+                'features': file2['features'],
+                'text_content': file2.get('text_content', '')
+            },
+            'actualType': 'same_user',
+            'difficulty': 'MEDIUM'
+        })
+        print(f"   ✅ Pair {pair_id}: Same user ({user_id[:8]}...)")
+        pair_id += 1
+    
+    # Create different-user pairs (target: 2)
+    print(f"\n👥 Creating DIFFERENT-USER pairs (target: {TARGET_DIFFERENT_USER})...")
+    different_user_count = 0
+    
+    # Use users not yet used for same-user pairs, or all users if needed
+    remaining_users = user_ids[len(pairs):] if len(pairs) < len(user_ids) else user_ids
+    
+    # Create pairs from different users
+    for i in range(len(remaining_users) - 1):
+        if different_user_count >= TARGET_DIFFERENT_USER:
+            break
+        
+        user1_id = remaining_users[i]
+        user2_id = remaining_users[i + 1]
+        
+        user1_files = eligible_users[user1_id]
+        user2_files = eligible_users[user2_id]
+        
+        if user1_files and user2_files:
+            # Use first file from each user
+            file1 = user1_files[0]
+            file2 = user2_files[0]
             
             pairs.append({
                 'id': f'pair_{pair_id:03d}',
@@ -131,73 +184,35 @@ def generate_text_pairs(all_data):
                     'features': file2['features'],
                     'text_content': file2.get('text_content', '')
                 },
-                'actualType': 'same_user',
+                'actualType': 'different_users',
                 'difficulty': 'MEDIUM'
             })
+            print(f"   ✅ Pair {pair_id}: Different users ({user1_id[:8]}... vs {user2_id[:8]}...)")
             pair_id += 1
+            different_user_count += 1
     
-    # Create different-user pairs (target: 2)
-    user_ids = list(user_groups.keys())
-    different_user_count = 0
-    used_for_different = set()  # Track users already used in different-user pairs
-    
-    # Use a more diverse pairing strategy: pair users that are further apart
-    for i in range(len(user_ids)):
-        if different_user_count >= TARGET_DIFFERENT_USER:
-            break
-        
-        # Skip if this user is already used in a different-user pair
-        if user_ids[i] in used_for_different:
-            continue
-            
-        # Find a different user to pair with
-        for j in range(i + 1, len(user_ids)):
-            if user_ids[j] in used_for_different:
-                continue
-            
-            user1_files = user_groups[user_ids[i]]
-            user2_files = user_groups[user_ids[j]]
-            
-            if user1_files and user2_files:
-                pairs.append({
-                    'id': f'pair_{pair_id:03d}',
-                    'text1': {
-                        'filename': user1_files[0]['filename'],
-                        'user_id': user1_files[0]['user_id'],
-                        'features': user1_files[0]['features'],
-                        'text_content': user1_files[0].get('text_content', '')
-                    },
-                    'text2': {
-                        'filename': user2_files[0]['filename'],
-                        'user_id': user2_files[0]['user_id'],
-                        'features': user2_files[0]['features'],
-                        'text_content': user2_files[0].get('text_content', '')
-                    },
-                    'actualType': 'different_users',
-                    'difficulty': 'MEDIUM'
-                })
-                pair_id += 1
-                different_user_count += 1
-                used_for_different.add(user_ids[i])
-                used_for_different.add(user_ids[j])
-                break  # Move to next user
-    
-    # If we still don't have enough pairs, fill with same-user pairs
+    # If we still need more pairs and have users with 3+ files, create additional same-user pairs
     if len(pairs) < TARGET_TOTAL:
-        remaining = TARGET_TOTAL - len(pairs)
-        for user_id, user_files in user_groups.items():
-            if remaining <= 0:
+        print(f"\n📝 Creating additional pairs to reach target ({len(pairs)}/{TARGET_TOTAL})...")
+        for user_id in user_ids:
+            if len(pairs) >= TARGET_TOTAL:
                 break
-            if len(user_files) >= 2:
-                # Check if this user already has a pair
-                user_has_pair = any(p['text1']['user_id'] == user_id or 
-                                  p['text2']['user_id'] == user_id 
-                                  for p in pairs if p['actualType'] == 'same_user')
+            
+            user_files = eligible_users[user_id]
+            # If user has 3+ files, can create another same-user pair
+            if len(user_files) >= 3:
+                # Use files 1 and 2 (already used) or 2 and 3
+                file1 = user_files[1] if len(user_files) > 2 else user_files[0]
+                file2 = user_files[2] if len(user_files) > 2 else user_files[1]
                 
-                if not user_has_pair:
-                    file1 = user_files[0]
-                    file2 = user_files[1] if len(user_files) > 1 else user_files[0]
-                    
+                # Check if this pair already exists
+                pair_exists = any(
+                    p['text1']['user_id'] == user_id and p['text2']['user_id'] == user_id
+                    and (p['text1']['filename'] == file1['filename'] or p['text2']['filename'] == file1['filename'])
+                    for p in pairs
+                )
+                
+                if not pair_exists:
                     pairs.append({
                         'id': f'pair_{pair_id:03d}',
                         'text1': {
@@ -215,8 +230,8 @@ def generate_text_pairs(all_data):
                         'actualType': 'same_user',
                         'difficulty': 'MEDIUM'
                     })
+                    print(f"   ✅ Pair {pair_id}: Same user ({user_id[:8]}...) - additional")
                     pair_id += 1
-                    remaining -= 1
     
     return pairs
 
