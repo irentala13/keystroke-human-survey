@@ -63,20 +63,42 @@
     GRAPH_BOTTOM_SPACING: 50
   };
 
-  const EMAIL_CONFIG = {
-    SERVICE_ID: 'service_a3ourga',
-    TEMPLATE_ID: 'template_5ud1f6l',
-    USER_ID: 'sgphbfBJi4Ehjd5OT',
-    TO_EMAIL: 'fpd1social@gmail.com',
-    API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
-  };
-  // const EMAIL_CONFIG = {
-  //   SERVICE_ID: 'service_u4bf0vt',
-  //   TEMPLATE_ID: 'template_xkica83',
-  //   USER_ID: 'C8w46dTZQHztZTpKB',
-  //   TO_EMAIL: 'irentala@my.harrisburgu.edu',
-  //   API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
-  // };
+  // ============================================================================
+  // EMAILJS CONFIGURATION
+  // ============================================================================
+  // Security: Load from external config.js (gitignored) to avoid exposing
+  // credentials in public repositories. Falls back to placeholder values.
+  // 
+  // To use: Copy config.example.js to config.js and fill in your values
+  // See SECURITY.md for detailed security guidance
+  
+  const EMAIL_CONFIG = (function() {
+    // Check if config override exists (loaded from config.js)
+    if (typeof EMAIL_CONFIG_OVERRIDE !== 'undefined' && EMAIL_CONFIG_OVERRIDE) {
+      // Validate config structure
+      const required = ['SERVICE_ID', 'TEMPLATE_ID', 'USER_ID', 'TO_EMAIL', 'API_URL'];
+      const missing = required.filter(key => !EMAIL_CONFIG_OVERRIDE[key] || 
+        EMAIL_CONFIG_OVERRIDE[key].includes('your_') || 
+        EMAIL_CONFIG_OVERRIDE[key].includes('example.com'));
+      
+      if (missing.length === 0) {
+        console.log('✅ Using EmailJS config from config.js');
+        return EMAIL_CONFIG_OVERRIDE;
+      } else {
+        console.warn('⚠️ config.js found but contains placeholder values. Using fallback.');
+      }
+    }
+    
+    // Fallback: Use placeholder values (should be replaced in production)
+    console.warn('⚠️ Using default EmailJS config. For production, create config.js with your credentials.');
+    return {
+      SERVICE_ID: 'service_u4bf0vt',
+      TEMPLATE_ID: 'template_xkica83',
+      USER_ID: 'C8w46dTZQHztZTpKB',
+      TO_EMAIL: 'irentala@my.harrisburgu.edu',
+      API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
+    };
+  })();
 
   // ============================================================================
   // STATE VARIABLES
@@ -1773,6 +1795,27 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
   // Send survey responses via EmailJS (SDK or REST API)
   async function sendSurveyEmailAutomatic(responses) {
     console.log('🚀 Starting automatic email send...');
+    
+    // Validate EmailJS configuration before attempting to send
+    const configValid = EMAIL_CONFIG && 
+      EMAIL_CONFIG.SERVICE_ID && 
+      EMAIL_CONFIG.SERVICE_ID !== 'service_u4bf0vt' &&
+      EMAIL_CONFIG.TEMPLATE_ID && 
+      EMAIL_CONFIG.TEMPLATE_ID !== 'template_xkica83' &&
+      EMAIL_CONFIG.USER_ID && 
+      EMAIL_CONFIG.USER_ID !== 'C8w46dTZQHztZTpKB' &&
+      EMAIL_CONFIG.TO_EMAIL && 
+      !EMAIL_CONFIG.TO_EMAIL.includes('irentala@my.harrisburgu.edu') &&
+      EMAIL_CONFIG.API_URL;
+    
+    if (!configValid) {
+      console.error('❌ EmailJS configuration is invalid or missing');
+      console.error('   Please create config.js from config.example.js with your EmailJS credentials');
+      return { 
+        success: false, 
+        error: 'EmailJS configuration is missing or invalid. Please configure config.js with your EmailJS credentials.' 
+      };
+    }
     
     // Prepare email data
     const timestamp = new Date().toLocaleString();

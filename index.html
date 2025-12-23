@@ -12,6 +12,23 @@
 <body>
   <main></main>
   
+  <!-- Load email config (optional - will use defaults if not found) -->
+  <script>
+    // Load config.js if it exists, otherwise continue with defaults
+    (function() {
+      const script = document.createElement('script');
+      script.src = 'config.js';
+      script.onerror = function() {
+        console.log('ℹ️ config.js not found - using default EmailJS configuration');
+        console.log('   Create config.js from config.example.js for production use');
+      };
+      script.onload = function() {
+        console.log('✅ config.js loaded successfully');
+      };
+      // Insert before other scripts to ensure config is available
+      document.head.insertBefore(script, document.head.firstChild);
+    })();
+  </script>
   <!-- Load main survey script -->
   <script src="text-keystroke-analysis-survey-from-json.js"></script>
   <script src="survey_data_from_json.js"></script>
