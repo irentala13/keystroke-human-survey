@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # Change to your default branch name if different
+  workflow_dispatch:  # Allows manual triggering
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js (for any build steps if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Create config.js from GitHub Secrets
+        run: |
+          cat > config.js << EOF
+          // Auto-generated config.js from GitHub Secrets
+          // DO NOT commit this file - it's generated during deployment
+          const EMAIL_CONFIG_OVERRIDE = {
+            SERVICE_ID: '${{ secrets.EMAILJS_SERVICE_ID }}',
+            TEMPLATE_ID: '${{ secrets.EMAILJS_TEMPLATE_ID }}',
+            USER_ID: '${{ secrets.EMAILJS_USER_ID }}',
+            TO_EMAIL: '${{ secrets.EMAILJS_TO_EMAIL }}',
+            API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
+          };
+          EOF
+          echo "✅ config.js created successfully"
+          # Verify config.js was created (without exposing secrets)
+          if [ -f config.js ]; then
+            echo "Config file exists"
+            # Check if it's not empty
+            if [ -s config.js ]; then
+              echo "Config file is not empty"
+            else
+              echo "⚠️ Warning: config.js is empty"
+              exit 1
+            fi
+          else
+            echo "❌ Error: config.js was not created"
+            exit 1
+          fi
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
