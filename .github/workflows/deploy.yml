@@ -29,30 +29,63 @@ jobs:
       
       - name: Verify GitHub Secrets are set
         run: |
-          echo "Checking if secrets are configured..."
+          echo "=========================================="
+          echo "Verifying GitHub Secrets..."
+          echo "=========================================="
+          
           SERVICE_ID="${{ secrets.EMAILJS_SERVICE_ID }}"
           TEMPLATE_ID="${{ secrets.EMAILJS_TEMPLATE_ID }}"
           USER_ID="${{ secrets.EMAILJS_USER_ID }}"
           TO_EMAIL="${{ secrets.EMAILJS_TO_EMAIL }}"
           
+          # Check each secret individually with clear messages
+          echo ""
+          echo "Checking EMAILJS_SERVICE_ID..."
           if [ -z "$SERVICE_ID" ]; then
-            echo "❌ ERROR: EMAILJS_SERVICE_ID secret is not set"
+            echo "❌ ERROR: EMAILJS_SERVICE_ID secret is EMPTY or NOT SET"
+            echo "   Please go to Settings → Secrets → Actions → Add EMAILJS_SERVICE_ID"
             exit 1
+          else
+            echo "✅ EMAILJS_SERVICE_ID is set (length: ${#SERVICE_ID} characters)"
           fi
+          
+          echo ""
+          echo "Checking EMAILJS_TEMPLATE_ID..."
           if [ -z "$TEMPLATE_ID" ]; then
-            echo "❌ ERROR: EMAILJS_TEMPLATE_ID secret is not set"
+            echo "❌ ERROR: EMAILJS_TEMPLATE_ID secret is EMPTY or NOT SET"
+            echo "   Please go to Settings → Secrets → Actions → Add EMAILJS_TEMPLATE_ID"
             exit 1
+          else
+            echo "✅ EMAILJS_TEMPLATE_ID is set (length: ${#TEMPLATE_ID} characters)"
           fi
+          
+          echo ""
+          echo "Checking EMAILJS_USER_ID..."
           if [ -z "$USER_ID" ]; then
-            echo "❌ ERROR: EMAILJS_USER_ID secret is not set"
+            echo "❌ ERROR: EMAILJS_USER_ID secret is EMPTY or NOT SET"
+            echo "   Please go to Settings → Secrets → Actions → Add EMAILJS_USER_ID"
             exit 1
+          else
+            echo "✅ EMAILJS_USER_ID is set (length: ${#USER_ID} characters)"
           fi
+          
+          echo ""
+          echo "Checking EMAILJS_TO_EMAIL..."
           if [ -z "$TO_EMAIL" ]; then
-            echo "❌ ERROR: EMAILJS_TO_EMAIL secret is not set"
+            echo "❌ ERROR: EMAILJS_TO_EMAIL secret is EMPTY or NOT SET"
+            echo "   Please go to Settings → Secrets → Actions → Add EMAILJS_TO_EMAIL"
             exit 1
+          else
+            echo "✅ EMAILJS_TO_EMAIL is set (length: ${#TO_EMAIL} characters)"
           fi
-          echo "✅ All secrets are configured"
-          echo "Secret verification: All 4 secrets have values (lengths hidden for security)"
+          
+          echo ""
+          echo "=========================================="
+          echo "✅ ALL SECRETS ARE CONFIGURED CORRECTLY"
+          echo "=========================================="
+          echo ""
+          echo "Note: Secret values are hidden for security."
+          echo "The workflow can read them, but they won't be displayed in logs."
       
       - name: Create config.js from GitHub Secrets
         run: |
@@ -232,6 +265,18 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+      
+      - name: Verify artifact contains config.js
+        run: |
+          echo "Verifying config.js is in the artifact..."
+          # List files that will be in the artifact
+          echo "Files in current directory (will be uploaded):"
+          find . -name "config.js" -o -name ".nojekyll" | head -10
+          if [ ! -f config.js ]; then
+            echo "❌ ERROR: config.js not found before upload!"
+            exit 1
+          fi
+          echo "✅ config.js confirmed present before upload"
       
       - name: Deploy to GitHub Pages
         id: deployment
