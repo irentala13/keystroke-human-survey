@@ -57,14 +57,43 @@ jobs:
       - name: Create config.js from GitHub Secrets
         run: |
           echo "Creating config.js file..."
+          
+          # Store secrets in variables
+          SERVICE_ID="${{ secrets.EMAILJS_SERVICE_ID }}"
+          TEMPLATE_ID="${{ secrets.EMAILJS_TEMPLATE_ID }}"
+          USER_ID="${{ secrets.EMAILJS_USER_ID }}"
+          TO_EMAIL="${{ secrets.EMAILJS_TO_EMAIL }}"
+          
+          # Debug: Check if secrets have values (without exposing them)
+          echo "Checking secret lengths (should all be > 0):"
+          echo "SERVICE_ID length: ${#SERVICE_ID}"
+          echo "TEMPLATE_ID length: ${#TEMPLATE_ID}"
+          echo "USER_ID length: ${#USER_ID}"
+          echo "TO_EMAIL length: ${#TO_EMAIL}"
+          
+          # Verify secrets are not empty
+          if [ -z "$SERVICE_ID" ] || [ -z "$TEMPLATE_ID" ] || [ -z "$USER_ID" ] || [ -z "$TO_EMAIL" ]; then
+            echo "❌ ERROR: One or more secrets are empty!"
+            echo "Please check GitHub Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          
+          # Create config.js with proper JavaScript escaping
+          # Escape single quotes in values for JavaScript strings
+          SERVICE_ID_ESC=$(echo "$SERVICE_ID" | sed "s/'/\\\\'/g")
+          TEMPLATE_ID_ESC=$(echo "$TEMPLATE_ID" | sed "s/'/\\\\'/g")
+          USER_ID_ESC=$(echo "$USER_ID" | sed "s/'/\\\\'/g")
+          TO_EMAIL_ESC=$(echo "$TO_EMAIL" | sed "s/'/\\\\'/g")
+          
+          # Write config.js with escaped values
           cat > config.js << EOF
           // Auto-generated config.js from GitHub Secrets
           // DO NOT commit this file - it's generated during deployment
           const EMAIL_CONFIG_OVERRIDE = {
-            SERVICE_ID: '${{ secrets.EMAILJS_SERVICE_ID }}',
-            TEMPLATE_ID: '${{ secrets.EMAILJS_TEMPLATE_ID }}',
-            USER_ID: '${{ secrets.EMAILJS_USER_ID }}',
-            TO_EMAIL: '${{ secrets.EMAILJS_TO_EMAIL }}',
+            SERVICE_ID: '${SERVICE_ID_ESC}',
+            TEMPLATE_ID: '${TEMPLATE_ID_ESC}',
+            USER_ID: '${USER_ID_ESC}',
+            TO_EMAIL: '${TO_EMAIL_ESC}',
             API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
           };
           EOF
@@ -113,6 +142,29 @@ jobs:
           
           echo "✅ config.js structure verified"
           echo "File size: $FILE_SIZE bytes"
+          
+          # Verify placeholders were replaced (check that defaults are NOT present)
+          if grep -q "service_u4bf0vt\|template_xkica83\|C8w46dTZQHztZTpKB\|irentala@my.harrisburgu.edu" config.js; then
+            echo "⚠️ WARNING: config.js still contains default/placeholder values!"
+            echo "This means secrets might not have been replaced correctly."
+            echo "Checking which values are still placeholders:"
+            grep -E "SERVICE_ID|TEMPLATE_ID|USER_ID|TO_EMAIL" config.js | head -4
+          else
+            echo "✅ Verified: No default placeholder values found in config.js"
+          fi
+          
+          # Show first few characters of each value (for debugging, without exposing full secrets)
+          echo ""
+          echo "Verifying values were set (showing first 3 chars only):"
+          grep "SERVICE_ID:" config.js | sed 's/.*SERVICE_ID: .\(...\).*/SERVICE_ID: ... (hidden)/'
+          grep "TEMPLATE_ID:" config.js | sed 's/.*TEMPLATE_ID: .\(...\).*/TEMPLATE_ID: ... (hidden)/'
+          grep "USER_ID:" config.js | sed 's/.*USER_ID: .\(...\).*/USER_ID: ... (hidden)/'
+          grep "TO_EMAIL:" config.js | sed 's/.*TO_EMAIL: .\(...\).*/TO_EMAIL: ... (hidden)/'
+      
+      - name: Create .nojekyll file
+        run: |
+          touch .nojekyll
+          echo "✅ Created .nojekyll file to ensure all files are served"
       
       - name: List files to be deployed
         run: |
@@ -122,15 +174,59 @@ jobs:
           echo "Checking if config.js exists:"
           if [ -f config.js ]; then
             echo "✅ config.js exists"
+            echo "File size: $(wc -c < config.js) bytes"
             echo "First few lines (without exposing secrets):"
             head -n 3 config.js | sed 's/\(.*\):.*/\1: [REDACTED]/'
           else
             echo "❌ config.js NOT FOUND"
             exit 1
           fi
+          echo ""
+          echo "Checking if .nojekyll exists:"
+          if [ -f .nojekyll ]; then
+            echo "✅ .nojekyll exists"
+          else
+            echo "❌ .nojekyll NOT FOUND"
+            exit 1
+          fi
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      
+      - name: Verify config.js before upload
+        run: |
+          echo "Final verification before upload:"
+          echo "config.js exists: $([ -f config.js ] && echo 'YES' || echo 'NO')"
+          echo ".nojekyll exists: $([ -f .nojekyll ] && echo 'YES' || echo 'NO')"
+          echo ""
+          echo "Files that will be uploaded (root level):"
+          ls -1 | grep -E '\.(html|js|css)$|^config\.js$|^\.nojekyll$' || true
+          echo ""
+          echo "=== config.js content (secrets masked) ==="
+          # Show config.js with values masked for verification
+          sed 's/\(SERVICE_ID: \).*/\1[MASKED]/; s/\(TEMPLATE_ID: \).*/\1[MASKED]/; s/\(USER_ID: \).*/\1[MASKED]/; s/\(TO_EMAIL: \).*/\1[MASKED]/' config.js
+          echo ""
+          echo "=== Verifying config.js structure ==="
+          # Check that all required fields exist and are not empty
+          if grep -q "SERVICE_ID: '[^']*'" config.js && \
+             grep -q "TEMPLATE_ID: '[^']*'" config.js && \
+             grep -q "USER_ID: '[^']*'" config.js && \
+             grep -q "TO_EMAIL: '[^']*'" config.js; then
+            echo "✅ All required fields present in config.js"
+            # Check that values are not empty (not just quotes)
+            if ! grep -q "SERVICE_ID: ''" config.js && \
+               ! grep -q "TEMPLATE_ID: ''" config.js && \
+               ! grep -q "USER_ID: ''" config.js && \
+               ! grep -q "TO_EMAIL: ''" config.js; then
+              echo "✅ All values are non-empty"
+            else
+              echo "❌ ERROR: Some values are empty!"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: Missing required fields in config.js"
+            exit 1
+          fi
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
