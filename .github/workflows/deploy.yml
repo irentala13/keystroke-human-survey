@@ -27,8 +27,36 @@ jobs:
         with:
           node-version: '18'
       
+      - name: Verify GitHub Secrets are set
+        run: |
+          echo "Checking if secrets are configured..."
+          SERVICE_ID="${{ secrets.EMAILJS_SERVICE_ID }}"
+          TEMPLATE_ID="${{ secrets.EMAILJS_TEMPLATE_ID }}"
+          USER_ID="${{ secrets.EMAILJS_USER_ID }}"
+          TO_EMAIL="${{ secrets.EMAILJS_TO_EMAIL }}"
+          
+          if [ -z "$SERVICE_ID" ]; then
+            echo "❌ ERROR: EMAILJS_SERVICE_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "$TEMPLATE_ID" ]; then
+            echo "❌ ERROR: EMAILJS_TEMPLATE_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "$USER_ID" ]; then
+            echo "❌ ERROR: EMAILJS_USER_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "$TO_EMAIL" ]; then
+            echo "❌ ERROR: EMAILJS_TO_EMAIL secret is not set"
+            exit 1
+          fi
+          echo "✅ All secrets are configured"
+          echo "Secret verification: All 4 secrets have values (lengths hidden for security)"
+      
       - name: Create config.js from GitHub Secrets
         run: |
+          echo "Creating config.js file..."
           cat > config.js << EOF
           // Auto-generated config.js from GitHub Secrets
           // DO NOT commit this file - it's generated during deployment
@@ -40,19 +68,64 @@ jobs:
             API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
           };
           EOF
+          
           echo "✅ config.js created successfully"
-          # Verify config.js was created (without exposing secrets)
-          if [ -f config.js ]; then
-            echo "Config file exists"
-            # Check if it's not empty
-            if [ -s config.js ]; then
-              echo "Config file is not empty"
-            else
-              echo "⚠️ Warning: config.js is empty"
-              exit 1
-            fi
-          else
+          
+          # Verify config.js was created and is not empty
+          if [ ! -f config.js ]; then
             echo "❌ Error: config.js was not created"
+            exit 1
+          fi
+          
+          if [ ! -s config.js ]; then
+            echo "⚠️ Warning: config.js is empty"
+            exit 1
+          fi
+          
+          # Verify file size (should be at least 200 bytes)
+          FILE_SIZE=$(wc -c < config.js)
+          if [ "$FILE_SIZE" -lt 200 ]; then
+            echo "⚠️ Warning: config.js seems too small ($FILE_SIZE bytes)"
+            exit 1
+          fi
+          
+          # Verify structure (check for key strings without exposing values)
+          if ! grep -q "EMAIL_CONFIG_OVERRIDE" config.js; then
+            echo "❌ Error: config.js missing EMAIL_CONFIG_OVERRIDE"
+            exit 1
+          fi
+          if ! grep -q "SERVICE_ID" config.js; then
+            echo "❌ Error: config.js missing SERVICE_ID"
+            exit 1
+          fi
+          if ! grep -q "TEMPLATE_ID" config.js; then
+            echo "❌ Error: config.js missing TEMPLATE_ID"
+            exit 1
+          fi
+          if ! grep -q "USER_ID" config.js; then
+            echo "❌ Error: config.js missing USER_ID"
+            exit 1
+          fi
+          if ! grep -q "TO_EMAIL" config.js; then
+            echo "❌ Error: config.js missing TO_EMAIL"
+            exit 1
+          fi
+          
+          echo "✅ config.js structure verified"
+          echo "File size: $FILE_SIZE bytes"
+      
+      - name: List files to be deployed
+        run: |
+          echo "Files in deployment directory:"
+          ls -la | head -20
+          echo ""
+          echo "Checking if config.js exists:"
+          if [ -f config.js ]; then
+            echo "✅ config.js exists"
+            echo "First few lines (without exposing secrets):"
+            head -n 3 config.js | sed 's/\(.*\):.*/\1: [REDACTED]/'
+          else
+            echo "❌ config.js NOT FOUND"
             exit 1
           fi
       
