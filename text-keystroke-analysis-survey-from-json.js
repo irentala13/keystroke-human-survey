@@ -37,13 +37,13 @@
   const DIMENSIONS = {
     CANVAS_MIN_HEIGHT: 1600,
     MOBILE_BREAKPOINT: 768,
-    TEXT_BOX_HEIGHT: 180,
-    TEXT_BOX_PADDING: 15,
+    TEXT_BOX_HEIGHT: 110,  // Reduced from 180 - fits content better
+    TEXT_BOX_PADDING: 8,   // Further reduced from 12 - minimal padding
     HEATMAP_HEIGHT: 220,
     HISTOGRAM_HEIGHT: 280,
     LABEL_WIDTH: 85,
-    GRAPH_SPACING: 40,
-    TITLE_HEIGHT: 30,
+    GRAPH_SPACING: 30,  // Further reduced
+    TITLE_HEIGHT: 22,   // Further reduced
     RESPONSE_BUTTON_HEIGHT: 50,
     NAV_BUTTON_HEIGHT_MOBILE: 45,
     NAV_BUTTON_HEIGHT_DESKTOP: 50,
@@ -59,8 +59,8 @@
     BOTTOM_MARGIN_MOBILE: 20,
     BOTTOM_MARGIN_DESKTOP: 30,
     BUTTON_SPACING: 15,
-    TEXT_SPACING: 50,
-    GRAPH_BOTTOM_SPACING: 50
+    TEXT_SPACING: 15,  // Further reduced - minimal gap
+    GRAPH_BOTTOM_SPACING: 35  // Further reduced
   };
 
   // ============================================================================
@@ -477,19 +477,20 @@
     
     let margin = getResponsiveMargin();
     let contentWidth = width - (2 * margin);
-    let y = 120;
+    let y = 40;  // Further reduced - minimal top margin
     
     textAlign(LEFT, TOP);
     
-    // Pair counter
+    // Pair counter - ultra-compact
     fill(COLORS.TEXT_QUATERNARY);
-    textSize(16);
+    textSize(14);  // Smaller
     textStyle(BOLD);
     text(`Text Pair ${currentPair + 1} of ${textPairs.length}`, margin, y);
-    y += 40;
+    y += 18;  // Further reduced - minimal spacing
     
-    // Draw text boxes
+    // Draw text boxes with minimal gap
     y = drawTextBox(pair.text1.content, "Text Sample 1:", margin, y, contentWidth);
+    y += 10;  // Minimal gap between boxes
     y = drawTextBox(pair.text2.content, "Text Sample 2:", margin, y, contentWidth);
     
     y += SPACING.TEXT_SPACING;
@@ -502,31 +503,42 @@
   }
 
   function drawTextBox(content, label, x, y, boxWidth) {
-    // Draw box background
+    // Ultra-compact text box - minimal padding and spacing
+    textSize(14);
+    textStyle(NORMAL);
+    let textWidth = boxWidth - (2 * DIMENSIONS.TEXT_BOX_PADDING);
+    let labelHeight = 18;  // Reduced label height
+    let contentHeight = 80;  // Reduced content height - fits text tightly
+    
+    // Draw box background - minimal height calculation
     fill(255);
     stroke(COLORS.BOX_STROKE);
     strokeWeight(2);
-    rect(x, y, boxWidth, DIMENSIONS.TEXT_BOX_HEIGHT);
+    // Minimal padding: top padding + label + tiny gap + content + bottom padding
+    let boxHeight = DIMENSIONS.TEXT_BOX_PADDING + labelHeight + 2 + contentHeight + DIMENSIONS.TEXT_BOX_PADDING;
+    rect(x, y, boxWidth, boxHeight);
     noStroke();
     
-    // Draw label
+    // Draw label - positioned at top with minimal padding
     textAlign(LEFT, TOP);
     textStyle(BOLD);
-    textSize(18);
+    textSize(15);  // Slightly smaller for tighter fit
     fill(COLORS.TEXT_SECONDARY);
-    text(label, x + DIMENSIONS.TEXT_BOX_PADDING, y + 20);
+    text(label, x + DIMENSIONS.TEXT_BOX_PADDING, y + DIMENSIONS.TEXT_BOX_PADDING);
     
-    // Draw content
+    // Draw content - positioned immediately below label with minimal gap
     textStyle(NORMAL);
     textSize(14);
     fill(COLORS.TEXT_TERTIARY);
+    // Minimal gap: padding + label height + 2px gap
+    let contentY = y + DIMENSIONS.TEXT_BOX_PADDING + labelHeight + 2;
     text(content || "[Text content not loaded]", 
         x + DIMENSIONS.TEXT_BOX_PADDING, 
-        y + 50, 
-        boxWidth - (2 * DIMENSIONS.TEXT_BOX_PADDING), 
-        120);
+        contentY, 
+        textWidth, 
+        contentHeight);
     
-    return y + DIMENSIONS.TEXT_BOX_HEIGHT;
+    return y + boxHeight;
   }
 
   // Display all 5 features: WPM, Avg KHT, Avg KIT, Pause Histogram, Burst Histogram
@@ -678,11 +690,9 @@
       textStyle(NORMAL);
     }
     
-    // Draw color scale legend below heatmap with proper spacing
-    // Position legend after feature labels with enough space to prevent overlap
-    // Feature labels are at graphY + heatmapHeight + 10, with textSize(12) and line breaks
-    // Labels can be ~25-30px tall, so need at least 50px total spacing
-    let legendY = graphY + heatmapHeight + 50; // Increased spacing to prevent label overlap
+    // Draw color scale legend below heatmap with compact spacing
+    // Position legend after feature labels with minimal but sufficient space
+    let legendY = graphY + heatmapHeight + 38; // Compact spacing - labels are ~20px tall
     let legendWidth = graphWidth * 0.6;
     let legendHeight = 20;
     let legendX = heatmapX + (graphWidth - legendWidth) / 2;
@@ -707,8 +717,8 @@
     textAlign(CENTER);
     
     // Update currentY to account for legend height and spacing
-    // Legend ends at legendY + legendHeight, add extra spacing before next graph
-    let legendBottom = legendY + legendHeight + 15; // 15px spacing after legend
+    // Legend ends at legendY + legendHeight, add compact spacing before next graph
+    let legendBottom = legendY + legendHeight + 12; // Reduced spacing
     currentY = legendBottom + SPACING.GRAPH_BOTTOM_SPACING;
     
     // ========== GRAPH 2: Pause Histogram ==========
@@ -733,13 +743,13 @@
     return graphY + histogramHeight + 40; // 40px for label height below histogram
   }
 
-  // Helper function to draw graph title
+  // Helper function to draw graph title - compact
   function drawGraphTitle(title, x, y) {
     textStyle(BOLD);
-    textSize(16);
+    textSize(15);  // Slightly smaller for compact look
     fill(COLORS.TEXT_PRIMARY);
     textAlign(CENTER);
-    text(title, x, y + 5);
+    text(title, x, y + 2);  // Reduced offset
     textAlign(LEFT);
   }
 
