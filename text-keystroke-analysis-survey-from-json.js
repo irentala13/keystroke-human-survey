@@ -679,8 +679,10 @@
     }
     
     // Draw color scale legend below heatmap with proper spacing
-    // Position legend after feature labels with enough space
-    let legendY = graphY + heatmapHeight + 35; // Increased from 30 to 35 for better spacing
+    // Position legend after feature labels with enough space to prevent overlap
+    // Feature labels are at graphY + heatmapHeight + 10, with textSize(12) and line breaks
+    // Labels can be ~25-30px tall, so need at least 50px total spacing
+    let legendY = graphY + heatmapHeight + 50; // Increased spacing to prevent label overlap
     let legendWidth = graphWidth * 0.6;
     let legendHeight = 20;
     let legendX = heatmapX + (graphWidth - legendWidth) / 2;
