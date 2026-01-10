@@ -72,18 +72,9 @@
   // To use: Copy config.example.js to config.js and fill in your values
   // See SECURITY.md for detailed security guidance
   
-  // EMAIL_CONFIG getter function - checks dynamically for EMAIL_CONFIG_OVERRIDE
-  // This ensures config.js values are used even if loaded after script initialization
-  function getEmailConfig() {
+  const EMAIL_CONFIG = (function() {
     // Check if config override exists (loaded from config.js)
-    // Check both global scope and window object
-    const configOverride = (typeof EMAIL_CONFIG_OVERRIDE !== 'undefined' && EMAIL_CONFIG_OVERRIDE) 
-      ? EMAIL_CONFIG_OVERRIDE 
-      : (typeof window !== 'undefined' && window.EMAIL_CONFIG_OVERRIDE) 
-        ? window.EMAIL_CONFIG_OVERRIDE 
-        : null;
-    
-    if (configOverride) {
+    if (typeof EMAIL_CONFIG_OVERRIDE !== 'undefined' && EMAIL_CONFIG_OVERRIDE) {
       // Validate config structure
       const required = ['SERVICE_ID', 'TEMPLATE_ID', 'USER_ID', 'TO_EMAIL', 'API_URL'];
       const missing = required.filter(key => !EMAIL_CONFIG_OVERRIDE[key] || 
@@ -91,13 +82,15 @@
         EMAIL_CONFIG_OVERRIDE[key].includes('example.com'));
       
       if (missing.length === 0) {
-        return configOverride;
+        console.log('✅ Using EmailJS config from config.js');
+        return EMAIL_CONFIG_OVERRIDE;
       } else {
         console.warn('⚠️ config.js found but contains placeholder values. Using fallback.');
       }
     }
     
     // Fallback: Use placeholder values (should be replaced in production)
+    console.warn('⚠️ Using default EmailJS config. For production, create config.js with the production credentials.');
     return {
       SERVICE_ID: 'service_u4bf0vt',
       TEMPLATE_ID: 'template_xkica83',
@@ -105,26 +98,6 @@
       TO_EMAIL: 'irentala@my.harrisburgu.edu',
       API_URL: 'https://api.emailjs.com/api/v1.0/email/send'
     };
-  }
-  
-  // EMAIL_CONFIG - use getter function to access current config
-  // This ensures we always check for EMAIL_CONFIG_OVERRIDE dynamically
-  const EMAIL_CONFIG = {
-    get SERVICE_ID() { return getEmailConfig().SERVICE_ID; },
-    get TEMPLATE_ID() { return getEmailConfig().TEMPLATE_ID; },
-    get USER_ID() { return getEmailConfig().USER_ID; },
-    get TO_EMAIL() { return getEmailConfig().TO_EMAIL; },
-    get API_URL() { return getEmailConfig().API_URL; }
-  };
-  
-  // Log which config is being used (check once at initialization)
-  (function() {
-    const config = getEmailConfig();
-    if (typeof EMAIL_CONFIG_OVERRIDE !== 'undefined' && EMAIL_CONFIG_OVERRIDE) {
-      console.log('✅ Using EmailJS config from config.js');
-    } else {
-      console.warn('⚠️ Using default EmailJS config. For production, create config.js with your credentials.');
-    }
   })();
 
   // ============================================================================
@@ -606,13 +579,48 @@
       
       let cellX = heatmapX + i * cellWidth;
       
-      // Normalize values to 0-1 range, clamping to ensure valid range
-      // Handle edge cases where value might be outside min-max range
-      // Normalize values to 0-1 range with precise floating point calculations
-      // This ensures maximum sensitivity to small differences
-      let range = feature.max - feature.min;
-      let normalized1 = range > 0 ? (value1 - feature.min) / range : 0;
-      let normalized2 = range > 0 ? (value2 - feature.min) / range : 0;
+      // Dynamic normalization: Calculate min/max based on actual values in this pair
+      // This ensures maximum visual differentiation between Text 1 and Text 2
+      // Strategy: Use global range as base, but if values are outside or too close, use dynamic range
+      let actualMin = Math.min(value1, value2);
+      let actualMax = Math.max(value1, value2);
+      let globalRange = feature.max - feature.min;
+      let valueDiff = actualMax - actualMin;
+      
+      // Determine if we need dynamic normalization:
+      // 1. Both values outside global range (both below min or both above max)
+      // 2. Values are very close together (< 2% of global range)
+      // 3. One value is outside range and they're close together
+      let bothBelowMin = actualMax < feature.min;
+      let bothAboveMax = actualMin > feature.max;
+      let valuesTooClose = valueDiff < globalRange * 0.02;
+      let needsDynamicRange = bothBelowMin || bothAboveMax || valuesTooClose;
+      
+      let range, normalized1, normalized2;
+      
+      if (needsDynamicRange) {
+        // Use dynamic range centered on actual values with padding
+        // Padding ensures values don't map to exact 0 or 1 (which would be same color)
+        let padding = Math.max(valueDiff * 0.2, globalRange * 0.05);
+        let dynamicMin = actualMin - padding;
+        let dynamicMax = actualMax + padding;
+        
+        // Ensure dynamic range is reasonable (at least 5% of global range)
+        if (dynamicMax - dynamicMin < globalRange * 0.05) {
+          let center = (actualMin + actualMax) / 2;
+          dynamicMin = center - globalRange * 0.025;
+          dynamicMax = center + globalRange * 0.025;
+        }
+        
+        range = dynamicMax - dynamicMin;
+        normalized1 = range > 0 ? (value1 - dynamicMin) / range : 0.5;
+        normalized2 = range > 0 ? (value2 - dynamicMin) / range : 0.5;
+      } else {
+        // Use global range for consistent comparison across pairs
+        range = globalRange;
+        normalized1 = (value1 - feature.min) / range;
+        normalized2 = (value2 - feature.min) / range;
+      }
       
       // Clamp normalized values to [0, 1] range
       normalized1 = Math.max(0, Math.min(1, normalized1));
@@ -1823,41 +1831,21 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
   async function sendSurveyEmailAutomatic(responses) {
     console.log('🚀 Starting automatic email send...');
     
-    // Get current config (checks dynamically for EMAIL_CONFIG_OVERRIDE)
-    const currentConfig = getEmailConfig();
-    
-    // Debug: Log config values (masked for security)
-    console.log('📧 EmailJS Config Check:', {
-      hasConfig: !!currentConfig,
-      hasOverride: typeof EMAIL_CONFIG_OVERRIDE !== 'undefined',
-      SERVICE_ID: currentConfig.SERVICE_ID ? currentConfig.SERVICE_ID.substring(0, 8) + '...' : 'missing',
-      TEMPLATE_ID: currentConfig.TEMPLATE_ID ? currentConfig.TEMPLATE_ID.substring(0, 8) + '...' : 'missing',
-      USER_ID: currentConfig.USER_ID ? currentConfig.USER_ID.substring(0, 4) + '...' : 'missing',
-      TO_EMAIL: currentConfig.TO_EMAIL ? currentConfig.TO_EMAIL.replace(/(.{2})(.*)(@.*)/, '$1***$3') : 'missing'
-    });
-    
     // Validate EmailJS configuration before attempting to send
-    const configValid = currentConfig && 
-      currentConfig.SERVICE_ID && 
-      currentConfig.SERVICE_ID !== 'service_u4bf0vt' &&
-      currentConfig.TEMPLATE_ID && 
-      currentConfig.TEMPLATE_ID !== 'template_xkica83' &&
-      currentConfig.USER_ID && 
-      currentConfig.USER_ID !== 'C8w46dTZQHztZTpKB' &&
-      currentConfig.TO_EMAIL && 
-      !currentConfig.TO_EMAIL.includes('irentala@my.harrisburgu.edu') &&
-      currentConfig.API_URL;
+    const configValid = EMAIL_CONFIG && 
+      EMAIL_CONFIG.SERVICE_ID && 
+      EMAIL_CONFIG.SERVICE_ID !== 'service_u4bf0vt' &&
+      EMAIL_CONFIG.TEMPLATE_ID && 
+      EMAIL_CONFIG.TEMPLATE_ID !== 'template_xkica83' &&
+      EMAIL_CONFIG.USER_ID && 
+      EMAIL_CONFIG.USER_ID !== 'C8w46dTZQHztZTpKB' &&
+      EMAIL_CONFIG.TO_EMAIL && 
+      !EMAIL_CONFIG.TO_EMAIL.includes('irentala@my.harrisburgu.edu') &&
+      EMAIL_CONFIG.API_URL;
     
     if (!configValid) {
       console.error('❌ EmailJS configuration is invalid or missing');
-      console.error('   Current config values:', {
-        SERVICE_ID: currentConfig.SERVICE_ID,
-        TEMPLATE_ID: currentConfig.TEMPLATE_ID,
-        USER_ID: currentConfig.USER_ID,
-        TO_EMAIL: currentConfig.TO_EMAIL,
-        isDefault: currentConfig.SERVICE_ID === 'service_u4bf0vt'
-      });
-      console.error('   EMAIL_CONFIG_OVERRIDE available:', typeof EMAIL_CONFIG_OVERRIDE !== 'undefined');
+      console.error('   Please create config.js from config.example.js with your EmailJS credentials');
       return { 
         success: false, 
         error: 'EmailJS configuration is missing or invalid. Please configure config.js with your EmailJS credentials.' 
@@ -1913,7 +1901,7 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
     
     // EmailJS template parameters
     const templateParams = {
-      to_email: currentConfig.TO_EMAIL,
+      to_email: EMAIL_CONFIG.TO_EMAIL,
       timestamp: timestamp,
       session_id: sessionId,
       pair_count: responses.length,
@@ -1929,8 +1917,8 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
       if (typeof emailjs !== 'undefined') {
         console.log('📧 Using EmailJS SDK...');
         const response = await emailjs.send(
-          currentConfig.SERVICE_ID,
-          currentConfig.TEMPLATE_ID,
+          EMAIL_CONFIG.SERVICE_ID,
+          EMAIL_CONFIG.TEMPLATE_ID,
           templateParams
         );
         console.log('✅ Email sent successfully via SDK!', response);
@@ -1941,13 +1929,13 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
       console.log('📤 EmailJS SDK not loaded, using REST API...');
       
       const emailData = {
-        service_id: currentConfig.SERVICE_ID,
-        template_id: currentConfig.TEMPLATE_ID,
-        user_id: currentConfig.USER_ID,
+        service_id: EMAIL_CONFIG.SERVICE_ID,
+        template_id: EMAIL_CONFIG.TEMPLATE_ID,
+        user_id: EMAIL_CONFIG.USER_ID,
         template_params: templateParams
       };
       
-      const response = await fetch(currentConfig.API_URL, {
+      const response = await fetch(EMAIL_CONFIG.API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
