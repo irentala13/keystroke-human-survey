@@ -579,50 +579,61 @@
       
       let cellX = heatmapX + i * cellWidth;
       
-      // Dynamic normalization: Calculate min/max based on actual values in this pair
-      // This ensures maximum visual differentiation between Text 1 and Text 2
-      // Strategy: Use global range as base, but if values are outside or too close, use dynamic range
+      // Enhanced dynamic normalization: Always maximize visual differentiation
+      // Strategy: Use dynamic range that guarantees minimum color separation
+      // This ensures visible color variation for ALL text pairs
       let actualMin = Math.min(value1, value2);
       let actualMax = Math.max(value1, value2);
       let globalRange = feature.max - feature.min;
       let valueDiff = actualMax - actualMin;
       
-      // Determine if we need dynamic normalization:
-      // 1. Both values outside global range (both below min or both above max)
-      // 2. Values are very close together (< 2% of global range)
-      // 3. One value is outside range and they're close together
-      let bothBelowMin = actualMax < feature.min;
-      let bothAboveMax = actualMin > feature.max;
-      let valuesTooClose = valueDiff < globalRange * 0.02;
-      let needsDynamicRange = bothBelowMin || bothAboveMax || valuesTooClose;
+      // Minimum normalized difference required for visible color variation (0.25 = 25% of color scale)
+      // This ensures even close values map to visibly different colors
+      const MIN_NORMALIZED_DIFF = 0.25;
       
-      let range, normalized1, normalized2;
-      
-      if (needsDynamicRange) {
-        // Use dynamic range centered on actual values with padding
-        // Padding ensures values don't map to exact 0 or 1 (which would be same color)
-        let padding = Math.max(valueDiff * 0.2, globalRange * 0.05);
+      // Calculate dynamic range that guarantees minimum color separation
+      // Always use dynamic normalization to maximize visual differentiation
+      {
+        // Calculate dynamic range with guaranteed minimum separation
+        // Padding ensures values don't map to exact 0 or 1
+        let padding;
+        if (valueDiff < 0.0001) {
+          // Identical or near-identical values: use fixed padding based on global range
+          padding = globalRange * 0.1; // 10% of global range
+        } else {
+          padding = Math.max(
+            valueDiff * 0.3,           // 30% of actual difference
+            globalRange * 0.08,        // OR 8% of global range (whichever is larger)
+            valueDiff / MIN_NORMALIZED_DIFF  // OR enough to guarantee min separation
+          );
+        }
+        
         let dynamicMin = actualMin - padding;
         let dynamicMax = actualMax + padding;
         
-        // Ensure dynamic range is reasonable (at least 5% of global range)
-        if (dynamicMax - dynamicMin < globalRange * 0.05) {
+        // Ensure minimum range size for stability
+        let minRange = Math.max(globalRange * 0.1, valueDiff * 2);
+        if (dynamicMax - dynamicMin < minRange) {
           let center = (actualMin + actualMax) / 2;
-          dynamicMin = center - globalRange * 0.025;
-          dynamicMax = center + globalRange * 0.025;
+          dynamicMin = center - minRange / 2;
+          dynamicMax = center + minRange / 2;
         }
         
-        range = dynamicMax - dynamicMin;
-        normalized1 = range > 0 ? (value1 - dynamicMin) / range : 0.5;
-        normalized2 = range > 0 ? (value2 - dynamicMin) / range : 0.5;
-      } else {
-        // Use global range for consistent comparison across pairs
-        range = globalRange;
-        normalized1 = (value1 - feature.min) / range;
-        normalized2 = (value2 - feature.min) / range;
+        // Normalize values
+        let range = dynamicMax - dynamicMin;
+        normalized1 = range > 0 ? (value1 - dynamicMin) / range : 0.4;
+        normalized2 = range > 0 ? (value2 - dynamicMin) / range : 0.6;
+        
+        // Ensure minimum separation: if normalized difference is too small, adjust
+        let normalizedDiff = Math.abs(normalized2 - normalized1);
+        if (normalizedDiff < MIN_NORMALIZED_DIFF) {
+          let center = (normalized1 + normalized2) / 2;
+          normalized1 = Math.max(0, center - MIN_NORMALIZED_DIFF / 2);
+          normalized2 = Math.min(1, center + MIN_NORMALIZED_DIFF / 2);
+        }
       }
       
-      // Clamp normalized values to [0, 1] range
+      // Final clamp to ensure valid range
       normalized1 = Math.max(0, Math.min(1, normalized1));
       normalized2 = Math.max(0, Math.min(1, normalized2));
       
