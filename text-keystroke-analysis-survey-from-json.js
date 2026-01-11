@@ -1113,6 +1113,11 @@
   }
 
 function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
+  // Static variable to track overflow warnings (only warn once total to avoid console spam)
+  if (!drawBurstHistogram._overflowWarned) {
+    drawBurstHistogram._overflowWarned = false;
+  }
+  
   // Use burst histogram from JSON if available
   let bursts1 = keystroke1.burstHistogram || [];
   let bursts2 = keystroke2.burstHistogram || [];
@@ -1347,7 +1352,11 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
     
     // Safety check: ensure we don't exceed container width
     if (currentX + barWidth > x + width - padding) {
-      console.warn('Burst histogram bars would overflow container, stopping at bin', i);
+      // Only warn once total to avoid console spam (this happens every frame in p5.js draw loop)
+      if (!drawBurstHistogram._overflowWarned) {
+        console.warn('Burst histogram bars would overflow container, stopping at bin', i, '(this warning will only appear once)');
+        drawBurstHistogram._overflowWarned = true;
+      }
       break;
     }
   }
