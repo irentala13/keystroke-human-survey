@@ -226,7 +226,16 @@
   }
 
   function windowResized() {
-    resizeCanvas(windowWidth, max(windowHeight, DIMENSIONS.CANVAS_MIN_HEIGHT));
+    // SME Recommendation: Handle canvas resizing based on page state
+    if (!surveyStarted && !isComplete) {
+      // Intro page: reset resize flag so canvas can be resized to fit content
+      window.introCanvasResized = false;
+      // Set initial size, displayIntroPage() will resize to fit content
+      resizeCanvas(windowWidth, max(windowHeight, DIMENSIONS.CANVAS_MIN_HEIGHT));
+    } else {
+      // Survey or completion pages: use full height
+      resizeCanvas(windowWidth, max(windowHeight, DIMENSIONS.CANVAS_MIN_HEIGHT));
+    }
     
     // Ensure canvas doesn't block button clicks
     if (canvas && canvas.elt) {
@@ -236,6 +245,7 @@
     if (window.startBtn && !surveyStarted) {
       window.startBtn.remove();
       window.startBtn = null;
+      window.introCanvasResized = false;  // Reset flag when button is removed
     }
     
     // Remove completion page elements to force recalculation on resize
@@ -465,10 +475,28 @@
       window.startBtn.style('z-index', '100');
       window.startBtn.mousePressed(() => {
         surveyStarted = true;
+        // Restore canvas to full height for survey pages (needed for content)
+        resizeCanvas(windowWidth, max(windowHeight, DIMENSIONS.CANVAS_MIN_HEIGHT));
         window.startBtn.remove();
         window.startBtn = null;
+        window.introCanvasResized = false;  // Reset flag
         scrollToTop();
       });
+    }
+    
+    // SME Recommendation: Resize canvas AFTER all content is drawn to eliminate empty space
+    // Resize only once when button is first created - use setTimeout to resize after draw completes
+    if (!surveyStarted && window.startBtn && !window.introCanvasResized) {
+      // Calculate content height based on button position
+      let contentBottom = buttonY + buttonHeight + 20;  // Button + small bottom margin (20px)
+      let newHeight = Math.max(contentBottom, 400);
+      // Resize after current draw cycle completes to avoid clearing content
+      setTimeout(() => {
+        if (!surveyStarted && canvas && window.startBtn) {
+          resizeCanvas(windowWidth, newHeight);
+          window.introCanvasResized = true;
+        }
+      }, 10);  // Small delay to ensure draw completes
     }
   }
 
