@@ -35,32 +35,32 @@
   };
 
   const DIMENSIONS = {
-    CANVAS_MIN_HEIGHT: 1600,
+    CANVAS_MIN_HEIGHT: 900,
     MOBILE_BREAKPOINT: 768,
-    TEXT_BOX_HEIGHT: 110,  // Reduced from 180 - fits content better
-    TEXT_BOX_PADDING: 8,   // Further reduced from 12 - minimal padding
-    HEATMAP_HEIGHT: 220,
-    HISTOGRAM_HEIGHT: 280,
-    LABEL_WIDTH: 85,
-    GRAPH_SPACING: 30,  // Further reduced
-    TITLE_HEIGHT: 22,   // Further reduced
-    RESPONSE_BUTTON_HEIGHT: 50,
-    NAV_BUTTON_HEIGHT_MOBILE: 45,
-    NAV_BUTTON_HEIGHT_DESKTOP: 50,
-    NAV_BUTTON_WIDTH_MOBILE: 100,
-    NAV_BUTTON_WIDTH_DESKTOP: 120
+    TEXT_BOX_HEIGHT: 110,
+    TEXT_BOX_PADDING: 6,
+    HEATMAP_HEIGHT: 80,       // Compact heatmap
+    HISTOGRAM_HEIGHT: 180,    // Reduced from 280
+    LABEL_WIDTH: 75,          // Reduced from 85
+    GRAPH_SPACING: 20,        // Reduced from 30
+    TITLE_HEIGHT: 18,         // Reduced from 22
+    RESPONSE_BUTTON_HEIGHT: 40,  // Reduced from 50
+    NAV_BUTTON_HEIGHT_MOBILE: 36,
+    NAV_BUTTON_HEIGHT_DESKTOP: 40,
+    NAV_BUTTON_WIDTH_MOBILE: 90,
+    NAV_BUTTON_WIDTH_DESKTOP: 110
   };
 
   const SPACING = {
-    MARGIN_MOBILE: 30,
-    MARGIN_DESKTOP: 50,
+    MARGIN_MOBILE: 20,        // Reduced from 30
+    MARGIN_DESKTOP: 30,       // Reduced from 50
     INTRO_MARGIN_MOBILE: 30,
     INTRO_MARGIN_DESKTOP: 60,
-    BOTTOM_MARGIN_MOBILE: 20,
-    BOTTOM_MARGIN_DESKTOP: 30,
-    BUTTON_SPACING: 15,
-    TEXT_SPACING: 15,  // Further reduced - minimal gap
-    GRAPH_BOTTOM_SPACING: 35  // Further reduced
+    BOTTOM_MARGIN_MOBILE: 10, // Reduced from 20
+    BOTTOM_MARGIN_DESKTOP: 15, // Reduced from 30
+    BUTTON_SPACING: 10,       // Reduced from 15
+    TEXT_SPACING: 8,          // Reduced from 15
+    GRAPH_BOTTOM_SPACING: 20  // Reduced from 35
   };
 
   // ============================================================================
@@ -306,12 +306,21 @@
           // Create fresh buttons
           createUI();
           createNavigationUI();
+
+          // Resize canvas to fit content (remove extra space at bottom)
+          resizeCanvasToFitContent();
         }
       }
       
       // Always update button highlights to reflect current state
       updateButtonHighlights();
-      
+
+      // Resize canvas when pair changes (different text = different height)
+      if (window.lastResizedPair !== currentPair && window.lastGraphEndY) {
+        resizeCanvasToFitContent();
+        window.lastResizedPair = currentPair;
+      }
+
       // Ensure buttons are visible and properly positioned
       if (buttons.length >= 2) {
         buttons.forEach(btn => {
@@ -502,23 +511,23 @@
 
   function displayTextPair(pair) {
     background(248, 248, 248);
-    
+
     let margin = getResponsiveMargin();
     let contentWidth = width - (2 * margin);
-    let y = 40;  // Further reduced - minimal top margin
-    
+    let y = 15;  // Minimal top margin
+
     textAlign(LEFT, TOP);
-    
-    // Pair counter - ultra-compact
+
+    // Pair counter - compact
     fill(COLORS.TEXT_QUATERNARY);
-    textSize(14);  // Smaller
+    textSize(12);
     textStyle(BOLD);
     text(`Text Pair ${currentPair + 1} of ${textPairs.length}`, margin, y);
-    y += 18;  // Further reduced - minimal spacing
-    
+    y += 14;
+
     // Draw text boxes with minimal gap
     y = drawTextBox(pair.text1.content, "Text Sample 1:", margin, y, contentWidth);
-    y += 10;  // Minimal gap between boxes
+    y += 6;  // Minimal gap between boxes
     y = drawTextBox(pair.text2.content, "Text Sample 2:", margin, y, contentWidth);
     
     y += SPACING.TEXT_SPACING;
@@ -531,42 +540,82 @@
   }
 
   function drawTextBox(content, label, x, y, boxWidth) {
-    // Ultra-compact text box - minimal padding and spacing
+    // Text box with height that adjusts to fit content
+    let contentText = content || "[Text content not loaded]";
+    let availableWidth = boxWidth - (2 * DIMENSIONS.TEXT_BOX_PADDING);
+    let labelHeight = 18;
+
+    // Calculate actual content height based on wrapped text
     textSize(14);
     textStyle(NORMAL);
-    let textWidth = boxWidth - (2 * DIMENSIONS.TEXT_BOX_PADDING);
-    let labelHeight = 18;  // Reduced label height
-    let contentHeight = 80;  // Reduced content height - fits text tightly
-    
-    // Draw box background - minimal height calculation
+    let lineHeight = textAscent() + textDescent() + 2;
+    let contentHeight = calculateWrappedTextHeight(contentText, availableWidth, lineHeight);
+
+    // Draw box background - height based on actual content
     fill(255);
     stroke(COLORS.BOX_STROKE);
     strokeWeight(2);
-    // Minimal padding: top padding + label + tiny gap + content + bottom padding
     let boxHeight = DIMENSIONS.TEXT_BOX_PADDING + labelHeight + 2 + contentHeight + DIMENSIONS.TEXT_BOX_PADDING;
     rect(x, y, boxWidth, boxHeight);
     noStroke();
-    
-    // Draw label - positioned at top with minimal padding
+
+    // Draw label
     textAlign(LEFT, TOP);
     textStyle(BOLD);
-    textSize(15);  // Slightly smaller for tighter fit
+    textSize(15);
     fill(COLORS.TEXT_SECONDARY);
     text(label, x + DIMENSIONS.TEXT_BOX_PADDING, y + DIMENSIONS.TEXT_BOX_PADDING);
-    
-    // Draw content - positioned immediately below label with minimal gap
+
+    // Draw content
     textStyle(NORMAL);
     textSize(14);
     fill(COLORS.TEXT_TERTIARY);
-    // Minimal gap: padding + label height + 2px gap
     let contentY = y + DIMENSIONS.TEXT_BOX_PADDING + labelHeight + 2;
-    text(content || "[Text content not loaded]", 
-        x + DIMENSIONS.TEXT_BOX_PADDING, 
-        contentY, 
-        textWidth, 
+    text(contentText,
+        x + DIMENSIONS.TEXT_BOX_PADDING,
+        contentY,
+        availableWidth,
         contentHeight);
-    
+
     return y + boxHeight;
+  }
+
+  function calculateWrappedTextHeight(content, maxWidth, lineHeight) {
+    // Calculate height needed for text wrapped to maxWidth
+    let words = content.split(' ');
+    let lines = 1;
+    let currentLineWidth = 0;
+
+    textSize(14);
+    textStyle(NORMAL);
+
+    for (let word of words) {
+      let wordWidth = textWidth(word + ' ');
+      if (currentLineWidth + wordWidth > maxWidth && currentLineWidth > 0) {
+        lines++;
+        currentLineWidth = wordWidth;
+      } else {
+        currentLineWidth += wordWidth;
+      }
+    }
+
+    return lines * lineHeight;
+  }
+
+  function resizeCanvasToFitContent() {
+    // Calculate the final content height based on navigation button position
+    let contentHeight = window.lastGraphEndY || 600;
+    let responseButtonHeight = DIMENSIONS.RESPONSE_BUTTON_HEIGHT;
+    let navButtonHeight = DIMENSIONS.NAV_BUTTON_HEIGHT_DESKTOP;
+
+    // Match button positioning: content + 5 + responseBtn + 8 + navBtn + padding
+    let navButtonY = contentHeight + 5 + responseButtonHeight + 8;
+    let finalHeight = navButtonY + navButtonHeight + 10;
+
+    // Resize canvas to fit content exactly
+    if (Math.abs(height - finalHeight) > 10) {
+      resizeCanvas(windowWidth, finalHeight);
+    }
   }
 
   // Display all 5 features: WPM, Avg KHT, Avg KIT, Pause Histogram, Burst Histogram
@@ -700,31 +749,30 @@
       rect(cellX, graphY + cellHeight, cellWidth, cellHeight);
       
       fill(COLORS.TEXT_PRIMARY);
-      textSize(12);
+      textSize(10);
       textAlign(CENTER);
       textStyle(BOLD);
-      // Move feature labels closer to heatmap to avoid overlap with legend
-      text(feature.name.replace(" ", "\n"), cellX + cellWidth/2, graphY + heatmapHeight + 10);
-      
-      textSize(13);
+      // Feature labels below heatmap
+      text(feature.name.replace(" ", "\n"), cellX + cellWidth/2, graphY + heatmapHeight + 6);
+
+      textSize(11);
       textAlign(CENTER);
       textStyle(BOLD);
       fill(255);
       stroke(0);
       strokeWeight(2);
-      text(getFormattedValue(value1, feature.unit), cellX + cellWidth/2, graphY + cellHeight/2 + 4);
-      text(getFormattedValue(value2, feature.unit), cellX + cellWidth/2, graphY + cellHeight + cellHeight/2 + 4);
+      text(getFormattedValue(value1, feature.unit), cellX + cellWidth/2, graphY + cellHeight/2 + 3);
+      text(getFormattedValue(value2, feature.unit), cellX + cellWidth/2, graphY + cellHeight + cellHeight/2 + 3);
       noStroke();
       textStyle(NORMAL);
     }
     
-    // Draw color scale legend below heatmap with compact spacing
-    // Position legend after feature labels with minimal but sufficient space
-    let legendY = graphY + heatmapHeight + 38; // Compact spacing - labels are ~20px tall
-    let legendWidth = graphWidth * 0.6;
-    let legendHeight = 20;
+    // Draw color scale legend below heatmap - positioned below feature labels
+    let legendY = graphY + heatmapHeight + 38;
+    let legendWidth = graphWidth * 0.5;
+    let legendHeight = 14;
     let legendX = heatmapX + (graphWidth - legendWidth) / 2;
-    
+
     // Draw gradient bar
     for (let i = 0; i < legendWidth; i++) {
       let normalized = i / legendWidth;
@@ -734,19 +782,18 @@
       line(legendX + i, legendY, legendX + i, legendY + legendHeight);
     }
     noStroke();
-    
-    // Add legend labels with better positioning
+
+    // Legend labels
     fill(COLORS.TEXT_PRIMARY);
-    textSize(10);
+    textSize(9);
     textAlign(LEFT);
-    text("Low", legendX - 30, legendY + legendHeight/2 + 3);
+    text("Low", legendX - 25, legendY + legendHeight/2 + 3);
     textAlign(RIGHT);
-    text("High", legendX + legendWidth + 30, legendY + legendHeight/2 + 3);
+    text("High", legendX + legendWidth + 25, legendY + legendHeight/2 + 3);
     textAlign(CENTER);
-    
-    // Update currentY to account for legend height and spacing
-    // Legend ends at legendY + legendHeight, add compact spacing before next graph
-    let legendBottom = legendY + legendHeight + 12; // Reduced spacing
+
+    // Update currentY - minimal spacing before next graph
+    let legendBottom = legendY + legendHeight + 6;
     currentY = legendBottom + SPACING.GRAPH_BOTTOM_SPACING;
     
     // ========== GRAPH 2: Pause Histogram ==========
@@ -767,8 +814,8 @@
   // No row labels needed for side-by-side bars - legend is shown in the histogram function
   drawBurstHistogram(keystroke1, keystroke2, x + labelWidth, graphY, graphWidth, histogramHeight);
     
-    // Return the final Y position (graph end + label height) for button positioning
-    return graphY + histogramHeight + 40; // 40px for label height below histogram
+    // Return the final Y position for button positioning
+    return graphY + histogramHeight + 10;
   }
 
   // Helper function to draw graph title - compact
@@ -928,11 +975,11 @@
     let maxNormalized = Math.max(maxNormalized1, maxNormalized2, 0.01);
     
     // UX-optimized spacing and dimensions for side-by-side bars
-    let padding = 20;
-    let labelHeight = 45; // Space for x-axis labels (increased for better readability)
-    let percentageLabelHeight = 20; // Space for percentage labels above bars
-    let legendHeight = 0; // Legend moved to top, no space needed at bottom
-    
+    let padding = 15;
+    let labelHeight = 25; // Space for x-axis labels
+    let percentageLabelHeight = 15; // Space for percentage labels above bars
+    let legendHeight = 0; // Legend moved to top
+
     let innerWidth = width - (2 * padding);
     let innerX = x + padding;
     let numBins = Math.max(sortedLabels.length, 1);
@@ -952,8 +999,8 @@
     }
     
     // Full height for bars (single row, side by side)
-    let barHeight = height - labelHeight - percentageLabelHeight - legendHeight - padding - 35; // Extra space for top legend
-    let barBaseY = y + padding + 35; // Start below legend
+    let barHeight = height - labelHeight - percentageLabelHeight - padding - 30; // Space for legend at top
+    let barBaseY = y + padding + 28; // Start below legend
     
     // Consistent colors for Text 1 and Text 2 (same across all bins)
     let text1Color = color(70, 130, 200);   // Blue for Text 1
@@ -1081,30 +1128,21 @@
       currentX += (barWidth * 2) + gapBetweenBars + gapBetweenBins;
     }
     
-    // Draw x-axis labels for all bins, centered under each bin pair with friendly styling
+    // Draw x-axis line at bottom of bars
+    let xAxisY = barBaseY + barHeight;
+    stroke(COLORS.TEXT_QUATERNARY);
+    strokeWeight(1);
+    line(innerX, xAxisY, innerX + innerWidth, xAxisY);
+    noStroke();
+
+    // Draw x-axis labels for all bins
     textAlign(CENTER, TOP);
-    textSize(10);
+    textSize(9);
     textStyle(NORMAL);
-    
+
     for (let binInfo of binCenters) {
-      // Show label for all bins, but use lighter color for empty bins
-      if (binInfo.hasData) {
-        fill(COLORS.TEXT_SECONDARY);
-      } else {
-        fill(COLORS.TEXT_QUATERNARY); // Lighter color for empty bins
-      }
-      
-      // Draw label with better spacing
-      text(binInfo.label, binInfo.x, y + height - labelHeight + 10);
-      
-      // Add subtle separator line above label for better visual separation (optional)
-      if (binInfo.hasData) {
-        stroke(COLORS.GRID_LINE);
-        strokeWeight(0.5);
-        line(binInfo.x - (barWidth + gapBetweenBars / 2), y + height - labelHeight + 5,
-            binInfo.x + (barWidth + gapBetweenBars / 2), y + height - labelHeight + 5);
-        noStroke();
-      }
+      fill(binInfo.hasData ? COLORS.TEXT_SECONDARY : COLORS.TEXT_QUATERNARY);
+      text(binInfo.label, binInfo.x, xAxisY + 3);
     }
     
     fill(COLORS.TEXT_PRIMARY); // Reset to default
@@ -1166,12 +1204,11 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
   let maxNormalized = Math.max(maxNormalized1, maxNormalized2, 0.01);
   
   // UX-optimized spacing and dimensions for side-by-side bars (same as pause histogram)
-  // Responsive padding based on screen size
   let isMobile = width < DIMENSIONS.MOBILE_BREAKPOINT;
-  let padding = isMobile ? 15 : 20;
-  let labelHeight = 45; // Space for x-axis labels (increased for better readability)
-  let percentageLabelHeight = 20; // Space for percentage labels above bars
-  let legendHeight = 0; // Legend moved to top, no space needed at bottom
+  let padding = 15;
+  let labelHeight = 25; // Space for x-axis labels
+  let percentageLabelHeight = 15; // Space for percentage labels above bars
+  let legendHeight = 0; // Legend moved to top
   
   let innerWidth = width - (2 * padding);
   let innerX = x + padding;
@@ -1214,8 +1251,8 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
   }
   
   // Full height for bars (single row, side by side)
-  let barHeight = height - labelHeight - percentageLabelHeight - legendHeight - padding - 35; // Extra space for top legend
-  let barBaseY = y + padding + 35; // Start below legend
+  let barHeight = height - labelHeight - percentageLabelHeight - padding - 30; // Space for legend at top
+  let barBaseY = y + padding + 28; // Start below legend
   
   // Consistent colors for Text 1 and Text 2 (same across all bins)
   // Using green for Text 1 burst (to differentiate from pause histogram) and orange for Text 2
@@ -1361,30 +1398,21 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
     }
   }
   
-  // Draw x-axis labels for all bins, centered under each bin pair with friendly styling
+  // Draw x-axis line at bottom of bars
+  let xAxisY = barBaseY + barHeight;
+  stroke(COLORS.TEXT_QUATERNARY);
+  strokeWeight(1);
+  line(innerX, xAxisY, innerX + innerWidth, xAxisY);
+  noStroke();
+
+  // Draw x-axis labels for all bins
   textAlign(CENTER, TOP);
-  textSize(10);
+  textSize(9);
   textStyle(NORMAL);
-  
+
   for (let binInfo of binCenters) {
-    // Show label for all bins, but use lighter color for empty bins
-    if (binInfo.hasData) {
-      fill(COLORS.TEXT_SECONDARY);
-    } else {
-      fill(COLORS.TEXT_QUATERNARY); // Lighter color for empty bins
-    }
-    
-    // Draw label with better spacing
-    text(binInfo.label, binInfo.x, y + height - labelHeight + 10);
-    
-    // Add subtle separator line above label for better visual separation
-    if (binInfo.hasData) {
-      stroke(COLORS.GRID_LINE);
-      strokeWeight(0.5);
-      line(binInfo.x - (barWidth + gapBetweenBars / 2), y + height - labelHeight + 5,
-          binInfo.x + (barWidth + gapBetweenBars / 2), y + height - labelHeight + 5);
-      noStroke();
-    }
+    fill(binInfo.hasData ? COLORS.TEXT_SECONDARY : COLORS.TEXT_QUATERNARY);
+    text(binInfo.label, binInfo.x, xAxisY + 3);
   }
   
   fill(COLORS.TEXT_PRIMARY); // Reset to default
@@ -1587,19 +1615,19 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
     buttons = [];
     
     let isMobile = isMobileDevice();
-    // Use dynamic content height from last graph position, or fallback to calculated height
-    let contentHeight = window.lastGraphEndY || (120 + 40 + 180 + 50 + 30 + 220 + 50 + 30 + 280 + 40 + 30 + 280 + 40);
-    let bottomMargin = isMobile ? SPACING.BOTTOM_MARGIN_MOBILE : SPACING.BOTTOM_MARGIN_DESKTOP;
-    let buttonY = contentHeight + bottomMargin + 20; // Extra spacing to prevent overlap
-    let buttonWidth = 200;
-    let spacing = SPACING.BUTTON_SPACING * 2;
+    // Use dynamic content height from last graph position
+    let contentHeight = window.lastGraphEndY || 600;
+    let buttonY = contentHeight + 5;  // Minimal spacing above buttons
+    let buttonWidth = 160;
+    let buttonHeight = DIMENSIONS.RESPONSE_BUTTON_HEIGHT;
+    let spacing = SPACING.BUTTON_SPACING;
     let totalWidth = (2 * buttonWidth) + spacing;
     let startX = (width - totalWidth) / 2;
-    
+
     // Create "Same User" button with proper event handlers
     let sameBtn = createButton('Same User');
     sameBtn.position(startX, buttonY);
-    sameBtn.size(buttonWidth, 50);
+    sameBtn.size(buttonWidth, buttonHeight);
     sameBtn.style('font-size', '16px');
     sameBtn.style('background-color', COLORS.DEFAULT_BUTTON);
     sameBtn.style('color', 'white');
@@ -1655,7 +1683,7 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
     // Create "Different Users" button with proper event handlers
     let differentBtn = createButton('Different Users');
     differentBtn.position(startX + buttonWidth + spacing, buttonY);
-    differentBtn.size(buttonWidth, DIMENSIONS.RESPONSE_BUTTON_HEIGHT);
+    differentBtn.size(buttonWidth, buttonHeight);
     differentBtn.style('font-size', '16px');
     differentBtn.style('background-color', COLORS.DEFAULT_BUTTON);
     differentBtn.style('color', 'white');
@@ -1787,22 +1815,20 @@ function drawBurstHistogram(keystroke1, keystroke2, x, y, width, height) {
   function createNavigationUI() {
     navButtons.forEach(btn => btn.remove());
     navButtons = [];
-    
+
     let isMobile = isMobileDevice();
-    let navButtonWidth = isMobile ? DIMENSIONS.NAV_BUTTON_WIDTH_MOBILE : DIMENSIONS.NAV_BUTTON_WIDTH_DESKTOP;
-    let navSpacing = isMobile ? SPACING.BUTTON_SPACING : SPACING.BUTTON_SPACING + 5;
-    let buttonHeight = isMobile ? DIMENSIONS.NAV_BUTTON_HEIGHT_MOBILE : DIMENSIONS.NAV_BUTTON_HEIGHT_DESKTOP;
-    let fontSize = isMobile ? '13px' : '14px';
-    
-    // Use dynamic content height from last graph position, or fallback to calculated height
-    let contentHeight = window.lastGraphEndY || (120 + 40 + 180 + 50 + 30 + 220 + 50 + 30 + 280 + 40 + 30 + 280 + 40);
-    let bottomMargin = isMobile ? SPACING.BOTTOM_MARGIN_MOBILE : SPACING.BOTTOM_MARGIN_DESKTOP;
+    let navButtonWidth = 110;  // Fixed width for both buttons
+    let navSpacing = SPACING.BUTTON_SPACING;
+    let buttonHeight = DIMENSIONS.NAV_BUTTON_HEIGHT_DESKTOP;
+    let fontSize = '13px';
+
+    // Position nav buttons directly below response buttons
+    let contentHeight = window.lastGraphEndY || 600;
     let responseButtonHeight = DIMENSIONS.RESPONSE_BUTTON_HEIGHT;
-    let buttonSpacing = SPACING.BUTTON_SPACING;
-    
+
     let navTotalWidth = (2 * navButtonWidth) + navSpacing;
     let navStartX = (width - navTotalWidth) / 2;
-    let buttonY = contentHeight + bottomMargin + responseButtonHeight + buttonSpacing + 20; // Extra spacing to prevent overlap
+    let buttonY = contentHeight + 5 + responseButtonHeight + 8;  // response buttons Y + height + small gap
     
     let prevBtn = createButton('← Previous');
     prevBtn.position(navStartX, buttonY);
