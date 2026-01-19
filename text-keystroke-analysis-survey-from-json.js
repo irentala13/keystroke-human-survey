@@ -619,7 +619,7 @@
   }
 
   // Display all 5 features: WPM, Avg KHT, Avg KIT, Pause Histogram, Burst Histogram
-  // Layout: Three graphs stacked vertically, one below the other
+  // Layout: Heatmap and Pause Histogram side by side, Burst Histogram below
   function displayKeystrokeFeatureHeatmap(keystroke1, keystroke2, x, y) {
     // Three features in heatmap: WPM, Avg KHT, Avg KIT
     const features = [
@@ -627,39 +627,41 @@
       {name: "Avg KHT", key: "avgKeyHoldTime", min: 50, max: 300, unit: "ms"},
       {name: "Avg KIT", key: "avgKeyInterval", min: 50, max: 500, unit: "ms"}
     ];
-    
-    // Vertical stacking layout: Each graph takes full width
-    let labelWidth = DIMENSIONS.LABEL_WIDTH;
-    let availableWidth = width - 2 * x - labelWidth;
+
+    let labelWidth = 50;  // Reduced label width
+    let availableWidth = width - 2 * x;
     let graphSpacing = SPACING.GRAPH_BOTTOM_SPACING;
-    
-    // Graph dimensions - full width for better readability
-    let graphWidth = availableWidth;
-    let heatmapHeight = DIMENSIONS.HEATMAP_HEIGHT;
+    let gapBetweenGraphs = 15;  // Gap between heatmap and pause histogram
+
+    // Side-by-side layout: heatmap takes 35%, pause histogram takes 65%
+    let heatmapWidth = (availableWidth - gapBetweenGraphs) * 0.35;
+    let pauseHistWidth = (availableWidth - gapBetweenGraphs) * 0.65;
+    let heatmapHeight = DIMENSIONS.HEATMAP_HEIGHT + 40;  // Taller to match histogram
     let histogramHeight = DIMENSIONS.HISTOGRAM_HEIGHT;
-    
+
     let currentY = y;
     let titleHeight = DIMENSIONS.TITLE_HEIGHT;
     
-    // ========== GRAPH 1: Keystroke Feature Analysis (Heatmap) ==========
+    // ========== ROW 1: Heatmap (left) and Pause Histogram (right) side by side ==========
     let titleY = currentY;
     let graphY = currentY + titleHeight;
-    
-    // Draw title
-    drawGraphTitle("Keystroke Feature Analysis", x + labelWidth + graphWidth/2, titleY);
-    
+
+    // Draw heatmap title
+    drawGraphTitle("Keystroke Features", x + labelWidth + (heatmapWidth - labelWidth)/2, titleY);
+
     // Row labels for heatmap
-    let rowLabelX = x + labelWidth - 12;
+    let rowLabelX = x + labelWidth - 8;
     let cellHeight = heatmapHeight / 2;
     let row1Y = graphY + cellHeight/2 + 6;
     let row2Y = graphY + cellHeight + cellHeight/2 + 6;
     drawRowLabels(rowLabelX, row1Y, row2Y);
-    
-    // Draw heatmap
+
+    // Draw heatmap box
     let heatmapX = x + labelWidth;
-    drawGraphBox(heatmapX, graphY, graphWidth, heatmapHeight);
-    
-    let cellWidth = graphWidth / features.length;
+    let heatmapBoxWidth = heatmapWidth - labelWidth;
+    drawGraphBox(heatmapX, graphY, heatmapBoxWidth, heatmapHeight);
+
+    let cellWidth = heatmapBoxWidth / features.length;
     
     for (let i = 0; i < features.length; i++) {
       let feature = features[i];
@@ -767,11 +769,11 @@
       textStyle(NORMAL);
     }
     
-    // Draw color scale legend below heatmap - positioned below feature labels
-    let legendY = graphY + heatmapHeight + 38;
-    let legendWidth = graphWidth * 0.5;
-    let legendHeight = 14;
-    let legendX = heatmapX + (graphWidth - legendWidth) / 2;
+    // Draw color scale legend below heatmap
+    let legendY = graphY + heatmapHeight + 28;
+    let legendWidth = heatmapBoxWidth * 0.7;
+    let legendHeight = 12;
+    let legendX = heatmapX + (heatmapBoxWidth - legendWidth) / 2;
 
     // Draw gradient bar
     for (let i = 0; i < legendWidth; i++) {
@@ -785,35 +787,32 @@
 
     // Legend labels
     fill(COLORS.TEXT_PRIMARY);
-    textSize(9);
+    textSize(8);
     textAlign(LEFT);
-    text("Low", legendX - 25, legendY + legendHeight/2 + 3);
+    text("Low", legendX - 20, legendY + legendHeight/2 + 3);
     textAlign(RIGHT);
-    text("High", legendX + legendWidth + 25, legendY + legendHeight/2 + 3);
+    text("High", legendX + legendWidth + 20, legendY + legendHeight/2 + 3);
     textAlign(CENTER);
 
-    // Update currentY - minimal spacing before next graph
-    let legendBottom = legendY + legendHeight + 6;
-    currentY = legendBottom + SPACING.GRAPH_BOTTOM_SPACING;
+    // ========== Pause Histogram (right side, same row as heatmap) ==========
+    let pauseHistX = x + heatmapWidth + gapBetweenGraphs;
+    drawGraphTitle("Pause Histogram", pauseHistX + pauseHistWidth/2, titleY);
+
+    // Draw pause histogram on the right - use same height as heatmap section
+    let pauseHistHeight = heatmapHeight + 50;  // Match heatmap total height including legend
+    drawPauseFrequencyHistogram(keystroke1, keystroke2, pauseHistX, graphY, pauseHistWidth, pauseHistHeight);
+
+    // Move to next row after the side-by-side section
+    currentY = graphY + Math.max(heatmapHeight + 50, pauseHistHeight) + graphSpacing;
     
-    // ========== GRAPH 2: Pause Histogram ==========
+    // ========== GRAPH 2: Burst Histogram (full width) ==========
     titleY = currentY;
     graphY = currentY + titleHeight;
-    drawGraphTitle("Pause Histogram", x + labelWidth + graphWidth/2, titleY);
-    
-    // No row labels needed for side-by-side bars - legend is shown in the histogram function
-    drawPauseFrequencyHistogram(keystroke1, keystroke2, x + labelWidth, graphY, graphWidth, histogramHeight);
-    
-    currentY = graphY + histogramHeight + graphSpacing;
-    
-  // ========== GRAPH 3: Burst Histogram ==========
-  titleY = currentY;
-  graphY = currentY + titleHeight;
-  drawGraphTitle("Burst Histogram", x + labelWidth + graphWidth/2, titleY);
-  
-  // No row labels needed for side-by-side bars - legend is shown in the histogram function
-  drawBurstHistogram(keystroke1, keystroke2, x + labelWidth, graphY, graphWidth, histogramHeight);
-    
+    drawGraphTitle("Burst Histogram", x + availableWidth/2, titleY);
+
+    // Burst histogram takes full width
+    drawBurstHistogram(keystroke1, keystroke2, x, graphY, availableWidth, histogramHeight);
+
     // Return the final Y position for button positioning
     return graphY + histogramHeight + 10;
   }
